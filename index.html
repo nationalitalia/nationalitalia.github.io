@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Captain Tsubasa Gacha Project</title>
+  <style>
+    body {
+      font-family: Poppins, sans-serif;
+      background: radial-gradient(circle at top, #181818, #0c0c0c);
+      color: white;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      margin-bottom: 0.5em;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin: 10px;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #60a5fa;
+    }
+
+    #results {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    #animation {
+      position: fixed;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 2.0s ease;
+      z-index: 100;
+    }
+
+    #animation.active {
+      opacity: 1;
+      animation: flash 1.5s ease;
+    }
+
+    @keyframes flash {
+      0% {
+        background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), transparent);
+      }
+
+      100% {
+        background: radial-gradient(circle at center, rgba(255, 255, 255, 0), transparent);
+      }
+    }
+
+    .card {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 20px;
+      width: 225px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      transform: scale(0.9);
+      transform-origin: center center;
+      animation: appear 1s forwards;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .rare {
+      border: 2px solid #71a8ff;
+    }
+
+    .epic {
+      border: 2px solid rgb(168, 85, 247);
+    }
+
+    .ratepic {
+      border: 2px solid rgb(230, 0, 255);
+    }
+
+    .legendary {
+      border: 2px solid gold;
+    }
+
+    .ultimate {
+      border: 2px solid rgb(255, 0, 0);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Captain Tsubasa Gacha Project</h1>
+  <p>TEST VERSION</p>
+
+  <button onclick="pull(1)">Pull x1</button>
+  <button onclick="pull(10)">Pull x10</button>
+  <button id="skipButton" style="display:none;" onclick="skipAnimation()">Skip ✦</button>
+
+  <div id="animation"></div>
+  <div id="results"></div>
+
+  <script>
+    let skipRequested = false;
+    let skipButton = null;
+
+    const characters = [
+      { name: "Tsubasa Ozora", rarity: "ultimate", img: "images/tsubasa-U.png" },
+      { name: "Brian Kluivoort", rarity: "legendary", img: "images/brian.png" },
+      { name: "Luciano Leo", rarity: "ratepic", img: "images/leo.png" },
+      { name: "Lee Yong-Un", rarity: "epic", img: "images/lee.png" },
+      { name: "Bossis", rarity: "rare", img: "images/bossis.png" }
+    ];
+
+    const rarityColors = {
+      rare: "rgba(59, 130, 246, 0.6)",
+      epic: "rgba(168, 85, 247, 0.6)",
+      ratepic: "rgba(230, 0, 255, 0.6)",
+      legendary: "rgba(255, 215, 0, 0.7)",
+      ultimate: "rgba(255, 0, 0, 0.8)"
+    };
+
+    const rarityChances = {
+      ultimate: 0.3,
+      legendary: 2,
+      ratepic: 15.7,
+      epic: 7,
+      rare: 75
+    };
+
+    function rarityToStars(rarity) {
+      switch (rarity) {
+        case "rare": return "✭✭✭";
+        case "epic": return "✭✭✭✭";
+        case "ratepic": return "✭✭✭✭";
+        case "legendary": return "✭✭✭✭✭";
+        case "ultimate": return "✭✭✭✭✭✭";
+        default: return rarity;
+      }
+    }
+
+
+    function getRandomRarity() {
+      const roll = Math.random() * 100;
+      let sum = 0;
+      for (const [rarity, chance] of Object.entries(rarityChances)) {
+        sum += chance;
+        if (roll < sum) return rarity;
+      }
+    }
+
+    function pull(count) {
+      const results = document.getElementById("results");
+      const anim = document.getElementById("animation");
+      skipButton = document.getElementById("skipButton");
+      skipRequested = false;
+
+      results.innerHTML = "";
+      skipButton.style.display = "inline-block";
+
+      const pulls = [];
+      for (let i = 0; i < count; i++) {
+        const rarity = getRandomRarity();
+        const pool = characters.filter(c => c.rarity === rarity);
+        const char = pool[Math.floor(Math.random() * pool.length)];
+        pulls.push(char);
+      }
+
+      const rarityOrder = ["rare", "epic", "ratepic", "legendary", "ultimate"];
+      const best = pulls.reduce((a, b) =>
+        rarityOrder.indexOf(b.rarity) > rarityOrder.indexOf(a.rarity) ? b : a
+      );
+
+      anim.style.background = `radial-gradient(circle at center, ${rarityColors[best.rarity]}, transparent)`;
+      anim.classList.add("active");
+
+      setTimeout(() => {
+        anim.classList.remove("active");
+
+        // crea tutte le carte subito
+        pulls.forEach((char, i) => {
+          const card = document.createElement("div");
+          card.classList.add("card", char.rarity);
+          card.innerHTML = `<img src="${char.img}" alt="${char.name}" style="width:100%; border-radius:8px; margin-bottom:6px;"><strong>${char.name}</strong><br><small>${rarityToStars(char.rarity)}</small>`;
+          card.style.animationDelay = `${i * 1.1}s`;
+          results.appendChild(card);
+        });
+
+      }, 600);
+    }
+
+    function skipAnimation() {
+      skipRequested = true;
+      const cards = document.querySelectorAll(".card");
+
+      // rimuovi ritardo e fai apparire subito tutte
+      cards.forEach(card => {
+        card.style.animationDelay = "0.5s";
+        card.style.animationDuration = "0.5s";
+      });
+
+      skipButton.style.display = "none";
+    }
+  </script>
+</body>
+
+</html>
