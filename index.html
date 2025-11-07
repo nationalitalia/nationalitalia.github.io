@@ -106,6 +106,10 @@
       border: 2px solid gold;
     }
 
+    .ratlegendary {
+      border: 2px solid gold;
+    }
+
     .ultimate {
       border: 2px solid rgb(255, 0, 0);
     }
@@ -128,17 +132,24 @@
     let skipButton = null;
 
     const characters = [
+      { name: "Genzo Wakabayashi", rarity: "ultimate", img: "images/genzo-U.png" },
       { name: "Tsubasa Ozora", rarity: "ultimate", img: "images/tsubasa-U.png" },
       { name: "Karl-Heinz Schneider", rarity: "ultimate", img: "images/schneider-U.png" },
-      { name: "Brian Kluivoort", rarity: "legendary", img: "images/brian.png" },
+      { name: "Brian Kluivoort", rarity: "ratlegendary", img: "images/brian.png" },
       { name: "Hikaru Matsuyama", rarity: "legendary", img: "images/matsuyama.png" },
+      { name: "Shun Nitta", rarity: "legendary", img: "images/nitta.png" },
+      { name: "Juan Diaz", rarity: "legendary", img: "images/diaz.png" },
       { name: "Gino Hernandez", rarity: "legendary", img: "images/gino.png" },
       { name: "Luciano Leo", rarity: "ratepic", img: "images/leo.png" },
       { name: "Robson", rarity: "ratepic", img: "images/robson.png" },
       { name: "Lee Yong-Un", rarity: "epic", img: "images/lee.png" },
+      { name: "Galvan", rarity: "epic", img: "images/galvan.png" },
+      { name: "Ismail Senghor", rarity: "epic", img: "images/senghor.png" },
+      { name: "Red Dragonfly", rarity: "epic", img: "images/dragonfly.png" },
       { name: "Yuichiro Daimaru", rarity: "rare", img: "images/daimaru.png" },
       { name: "Zangief", rarity: "rare", img: "images/zangief.png" },
-      { name: "Bossis", rarity: "rare", img: "images/bossis.png" }
+      { name: "Bossis", rarity: "rare", img: "images/bossis.png" },
+      { name: "Daniel", rarity: "rare", img: "images/daniel.png" }
     ];
 
     const rarityColors = {
@@ -146,12 +157,14 @@
       epic: "rgba(168, 85, 247, 0.6)",
       ratepic: "rgba(230, 0, 255, 0.6)",
       legendary: "rgba(255, 215, 0, 0.7)",
+      ratlegendary: "rgba(255, 215, 0, 0.7)",
       ultimate: "rgba(255, 0, 0, 0.8)"
     };
 
     const rarityChances = {
       ultimate: 0.3,
-      legendary: 2,
+      ratlegendary: 1.3,
+      legendary: 0.7,
       ratepic: 15.7,
       epic: 7,
       rare: 75
@@ -161,8 +174,9 @@
       switch (rarity) {
         case "rare": return "✭✭✭";
         case "epic": return "✭✭✭✭";
-        case "ratepic": return "✭✭✭✭";
+        case "ratepic": return "✭✭✭✭ [Rate-Up]";
         case "legendary": return "✭✭✭✭✭";
+        case "ratlegendary": return "✭✭✭✭✭ [Rate-Up]";
         case "ultimate": return "✭✭✭✭✭✭";
         default: return rarity;
       }
@@ -195,7 +209,7 @@
         pulls.push(char);
       }
 
-      const rarityOrder = ["rare", "epic", "ratepic", "legendary", "ultimate"];
+      const rarityOrder = ["rare", "epic", "ratepic", "legendary", "ratlegendary", "ultimate"];
       const best = pulls.reduce((a, b) =>
         rarityOrder.indexOf(b.rarity) > rarityOrder.indexOf(a.rarity) ? b : a
       );
