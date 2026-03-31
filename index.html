@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Il Gioco di Corax</title>
+    <style>
+        body {
+            background: #222;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            overflow: hidden;
+        }
+
+        canvas {
+            border: 4px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+            background: #87CEEB;
+            cursor: none;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 2px 2px #000;
+            letter-spacing: 2px;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Il Gioco di Corax</h1>
+    <div class="info">Usa le FRECCE per muoverti</div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // --- CARICAMENTO RISORSE ---
+        const birdImg = new Image();
+        const fruitImg = new Image();
+        const seedImg = new Image();
+        const eatSound = new Audio('pop.mp3'); // Assicurati di avere questo file mp3
+        const loseSound = new Audio('hurt.mp3');
+
+        birdImg.src = 'bird.png';
+        fruitImg.src = 'apple.png';
+        seedImg.src = 'seed.png';
+
+        let imagesLoaded = 0;
+        function checkImagesLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === 3) startGame();
+        }
+        birdImg.onload = fruitImg.onload = seedImg.onload = checkImagesLoaded;
+
+        // --- VARIABILI DI GIOCO ---
+        let bird = { x: 150, y: 500, w: 80, h: 80, speed: 9 };
+        let items = [];
+        let floatingTexts = [];
+        let score = 0;
+        let lives = 3;
+        let isGameOver = false;
+        let keys = {};
+
+        // Input tastiera
+        window.addEventListener("keydown", e => {
+            keys[e.code] = true;
+            if (isGameOver && e.code === "Space") resetGame();
+        });
+        window.addEventListener("keyup", e => keys[e.code] = false);
+
+        function spawnItem() {
+            const isSeed = Math.random() < 0.25; // 25% probabilità seme
+            items.push({
+                x: Math.random() * (canvas.width - 40),
+                y: -50,
+                size: isSeed ? 25 : 40,
+                speed: isSeed ? 7 : 5.8, // Mele lente, Semi veloci
+                type: isSeed ? 'seed' : 'fruit',
+                points: isSeed ? 5 : 1
+            });
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            items = [];
+            floatingTexts = [];
+            isGameOver = false;
+            bird.x = 150;
+            // Non serve chiamare startGame() perché il loop requestAnimationFrame è gestito in draw
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            // Movimento Corax
+            if (keys["ArrowLeft"] && bird.x > 0) bird.x -= bird.speed;
+            if (keys["ArrowRight"] && bird.x < canvas.width - bird.w) bird.x += bird.speed;
+
+            // Gestione Oggetti
+            for (let i = items.length - 1; i >= 0; i--) {
+                let s = items[i];
+                s.y += s.speed;
+
+                // Collisione
+                if (s.x < bird.x + bird.w - 15 &&
+                    s.x + s.size > bird.x + 15 &&
+                    s.y < bird.y + bird.h &&
+                    s.y + s.size > bird.y + 20) {
+
+                    score += s.points;
+
+                    // Suono (con catch per evitare errori se il file manca)
+                    eatSound.currentTime = 0;
+                    eatSound.play().catch(() => { });
+
+                    if (s.type === 'fruit') {
+                        floatingTexts.push({
+                            x: bird.x + bird.w / 2,
+                            y: bird.y,
+                            text: "Mela Mangiata! +1",
+                            life: 60,
+                            color: "255, 255, 255"
+                        });
+                    }
+
+                    // Testo Bonus per il seme
+                    else if (s.type === 'seed') {
+                        floatingTexts.push({
+                            x: bird.x + bird.w / 2,
+                            y: bird.y,
+                            text: "Semino Mangiato! +5",
+                            life: 40,
+                            color: "255, 255, 0"
+                        });
+                    }
+
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Caduta fuori schermo
+                // Se cade fuori schermo
+                if (s.y > canvas.height) {
+                    if (s.type === 'fruit' || s.type === 'seed') {
+                        lives--;
+                        // RIPRODUCI IL SUONO DEL DANNO
+                        loseSound.currentTime = 0;
+                        loseSound.play().catch(() => { });
+
+                        // OPZIONALE: Aggiungi un testo rosso che dice "Persa!"
+                        floatingTexts.push({
+                            x: s.x + s.size / 2,
+                            y: canvas.height - 50,
+                            text: "Vita persa! ❤️-1",
+                            life: 50,
+                            color: "255, 0, 0" // Rosso
+                        });
+                    }
+                    items.splice(i, 1);
+                    if (lives <= 0) isGameOver = true;
+                }
+            }
+
+            // Testi fluttuanti (update)
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].y -= 1.5;
+                floatingTexts[i].life--;
+                if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+            }
+
+            // Spawn casuale (circa ogni secondo)
+            if (Math.random() < 0.011) spawnItem();
+        }
+
+        function draw() {
+            // Sfondo
+            let sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            sky.addColorStop(0, "#1e90ff");
+            sky.addColorStop(1, "#87CEEB");
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Erba
+            ctx.fillStyle = "#228B22";
+            ctx.fillRect(0, 580, canvas.width, 20);
+
+            // Corax
+            ctx.drawImage(birdImg, bird.x, bird.y, bird.w, bird.h);
+
+            // Oggetti (Frutta/Semi)
+            items.forEach(s => {
+                const img = s.type === 'seed' ? seedImg : fruitImg;
+                ctx.drawImage(img, s.x, s.y, s.size, s.size);
+            });
+
+            // Testi Bonus
+            floatingTexts.forEach(ft => {
+                // Usiamo la proprietà ft.color che abbiamo definito sopra
+                ctx.fillStyle = `rgba(${ft.color}, ${ft.life / 60})`;
+                ctx.font = "bold 18px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(ft.text, ft.x, ft.y);
+            });
+
+            // UI
+            ctx.textAlign = "left";
+            ctx.fillStyle = "white";
+            ctx.font = "bold 22px Arial";
+            ctx.fillText("Punti: " + score, 20, 40);
+            ctx.fillText("Vite: " + "❤️".repeat(lives), 20, 75);
+
+            if (isGameOver) {
+                ctx.fillStyle = "rgba(0,0,0,0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+
+                // Titolo
+                ctx.font = "bold 45px Arial";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 60);
+
+                // Riga 1
+                ctx.font = "22px Arial";
+                ctx.fillText("Corax è finalmente sazio!", canvas.width / 2, canvas.height / 2);
+
+                // Riga 2 (spostata in basso di 30 pixel rispetto alla riga 1)
+                ctx.fillText("Ha mangiato " + score + " pietanze!", canvas.width / 2, canvas.height / 2 + 30);
+
+                // Istruzione per riprovare
+                ctx.fillStyle = "#fbff00";
+                ctx.font = "bold 20px Arial";
+                ctx.fillText("Premi SPAZIO per riprovare", canvas.width / 2, canvas.height / 2 + 90);
+            }
+
+            update();
+            requestAnimationFrame(draw);
+        }
+
+        function startGame() {
+            draw();
+        }
+    </script>
+</body>
+
+</html>
