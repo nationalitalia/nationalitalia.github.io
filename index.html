@@ -2,6 +2,8 @@
 <html>
 
 <head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Il Gioco di Corax</title>
     <style>
         body {
@@ -23,6 +25,14 @@
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
             background: #87CEEB;
             cursor: none;
+            max-width: 95vw;
+            /* Massimo 95% della larghezza schermo */
+            max-height: 80vh;
+            /* Massimo 80% dell'altezza schermo */
+            width: auto;
+            height: auto;
+            touch-action: none;
+            /* Impedisce lo scroll della pagina mentre giochi */
         }
 
         h1 {
@@ -94,15 +104,22 @@
             });
         }
 
+        // Sostituisci la tua funzione resetGame per includere il supporto touch
         function resetGame() {
             score = 0;
             lives = 3;
             items = [];
             floatingTexts = [];
             isGameOver = false;
-            bird.x = 150;
-            // Non serve chiamare startGame() perché il loop requestAnimationFrame è gestito in draw
+            bird.x = canvas.width / 2 - bird.w / 2; // Centra Corax
         }
+
+        // Impedisce il menu contestuale (tasto destro) su mobile tenendo premuto
+        window.oncontextmenu = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        };
 
         function update() {
             if (isGameOver) return;
@@ -110,6 +127,42 @@
             // Movimento Corax
             if (keys["ArrowLeft"] && bird.x > 0) bird.x -= bird.speed;
             if (keys["ArrowRight"] && bird.x < canvas.width - bird.w) bird.x += bird.speed;
+
+
+
+            window.addEventListener("touchend", () => {
+                keys["ArrowLeft"] = false;
+                keys["ArrowRight"] = false;
+            });
+
+            // Gestione del trascinamento con il dito
+canvas.addEventListener("touchmove", e => {
+    e.preventDefault(); // Impedisce alla pagina di scorrere mentre muovi il dito
+    
+    if (isGameOver) return;
+
+    // Recupera la posizione del tocco
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calcola la scala (utile se il canvas è ridimensionato dal CSS)
+    const scaleX = canvas.width / rect.width;
+    
+    // Calcola la nuova X centrando Corax sul dito
+    let touchX = (touch.clientX - rect.left) * scaleX;
+    
+    // Muovi Corax (centrandolo rispetto al tocco)
+    bird.x = touchX - bird.w / 2;
+
+    // Limiti laterali (non farlo uscire dallo schermo)
+    if (bird.x < 0) bird.x = 0;
+    if (bird.x > canvas.width - bird.w) bird.x = canvas.width - bird.w;
+}, { passive: false });
+
+// Tocco per ricominciare se il gioco è finito
+canvas.addEventListener("touchstart", e => {
+    if (isGameOver) resetGame();
+});
 
             // Gestione Oggetti
             for (let i = items.length - 1; i >= 0; i--) {
